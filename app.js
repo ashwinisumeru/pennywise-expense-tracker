@@ -173,9 +173,8 @@ function submitExpense(event) {
   formError.textContent = '';
   if (!Number.isFinite(amount) || amount <= 0) { amountError.textContent = 'Enter an amount greater than 0.'; return; }
   if (amount > 10000000) { amountError.textContent = 'Amount must be below 10,000,000.'; return; }
-  if (!form.get('date') || !form.get('category') || !form.get('method')) { formError.textContent = 'Please complete the required fields.'; return; }
-  expenses.unshift({ id: crypto.randomUUID(), amount: Math.round(amount * 100) / 100, category: form.get('category').trim(), method: form.get('method').trim(), date: form.get('date'), merchant: form.get('merchant').trim() || form.get('category').trim(), note: form.get('note').trim() });
-  save(); closeExpenseModal(); renderAll(); showToast('Expense saved successfully');
+  expenses.unshift({ id: crypto.randomUUID(), amount: Math.round(amount * 100) / 100, category: form.get('category').trim(), method: form.get('method').trim(), date: form.get('date') || todayString, merchant: form.get('merchant').trim() || form.get('category').trim() || 'Expense', note: form.get('note').trim() });
+  save(); closeExpenseModal(); document.getElementById('pageFormError').textContent = ''; document.getElementById('pageAmountError').textContent = ''; renderAll(); showToast('Expense saved successfully');
 }
 
 function deleteExpense(id) { const item = expenses.find(expense => expense.id === id); if (!item || !window.confirm(`Delete ${item.merchant || 'this expense'}?`)) return; expenses = expenses.filter(expense => expense.id !== id); save(); renderAll(); if (currentRoute === 'transactions') renderTransactions(); showToast('Expense deleted'); }
@@ -192,6 +191,7 @@ document.addEventListener('click', event => {
   if (event.target.closest('#editBudgetButton')) { const next = window.prompt(`Set your monthly budget in ${currency}`, monthlyBudget); if (next !== null && Number(next) > 0) { monthlyBudget = Math.round(Number(next)); localStorage.setItem(BUDGET_KEY, monthlyBudget); renderAll(); showToast('Monthly budget updated'); } }
 });
 document.getElementById('expenseForm').addEventListener('submit', submitExpense);
+['amount', 'category', 'date', 'method'].forEach(id => { document.getElementById(id).required = false; });
 document.getElementById('pageExpenseForm').addEventListener('submit', event => {
   submitExpense(event);
   if (!event.defaultPrevented) return;
