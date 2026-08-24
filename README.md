@@ -87,7 +87,9 @@ http://localhost:3000
 
 ## Live Application URL
 
-The application is not deployed yet. It currently runs locally from `index.html`.
+https://ghdemo-chi.vercel.app
+
+The application is deployed on Vercel and connected to the GitHub repository for future deployments.
 
 ## Project Files
 
