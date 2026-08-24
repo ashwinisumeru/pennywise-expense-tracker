@@ -14,6 +14,7 @@ let currency = localStorage.getItem(CURRENCY_KEY) || detectedCurrency;
 let currentRoute = 'dashboard';
 
 const inr = value => new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
+const chartMoney = value => new Intl.NumberFormat(undefined, { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(value);
 const currencySymbol = () => new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).formatToParts(0).find(part => part.type === 'currency')?.value || currency;
 const shortDate = date => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(new Date(`${date}T00:00:00`));
 const today = new Date();
@@ -51,6 +52,7 @@ function renderProfile() {
   const displayName = profileName || 'there';
   const displayInitials = profileName ? profileName.split(/\s+/).map(word => word[0]).join('').slice(0, 2).toUpperCase() : '?';
   document.getElementById('greetingName').textContent = displayName;
+  document.getElementById('greetingName').style.overflowWrap = 'anywhere';
   document.getElementById('greetingTime').textContent = greetingForHour(new Date().getHours());
   document.getElementById('sidebarName').textContent = profileName || 'Add your name';
   document.getElementById('sidebarAvatar').textContent = displayInitials;
@@ -81,6 +83,19 @@ function renderStats() {
   document.getElementById('budgetStatus').style.color = overBudget ? 'var(--red)' : '';
   document.getElementById('budgetStatus').textContent = !monthlyBudget ? 'Set a monthly budget' : overBudget ? `${inr(total - monthlyBudget)} over budget` : `${inr(total)} of ${inr(monthlyBudget)} used`;
   document.getElementById('budgetPercent').textContent = `${usedPercent}%`;
+  fitNumericDisplays();
+}
+
+function fitNumericDisplays() {
+  document.querySelectorAll('.stat-value').forEach(element => {
+    const length = element.textContent.length;
+    element.style.fontSize = length > 20 ? '13px' : length > 16 ? '15px' : length > 12 ? '18px' : '30px';
+    element.style.whiteSpace = 'nowrap';
+    element.closest('.stat-card').style.minWidth = '0';
+    element.closest('.stat-card').style.overflow = 'hidden';
+  });
+  const donutTotal = document.getElementById('donutTotal');
+  donutTotal.style.fontSize = donutTotal.textContent.length > 12 ? '12px' : '17px';
 }
 
 function renderChart() {
@@ -90,11 +105,12 @@ function renderChart() {
     const total = monthExpenses().filter(item => Number(item.date.slice(-2)) === day).reduce((sum, item) => sum + Number(item.amount), 0);
     return { label, total };
   });
-  const max = 5000;
-  document.getElementById('chartMaxLabel').textContent = inr(max);
-  document.getElementById('chartMidLabel').textContent = inr(max * 0.7);
-  document.getElementById('chartLowLabel').textContent = inr(max * 0.4);
-  document.getElementById('chartZeroLabel').textContent = inr(0);
+  const maxValue = Math.max(...groups.map(group => group.total), 0);
+  const max = maxValue ? Math.ceil(maxValue * 1.15 / 100) * 100 : 5000;
+  document.getElementById('chartMaxLabel').textContent = chartMoney(max);
+  document.getElementById('chartMidLabel').textContent = chartMoney(max * 0.7);
+  document.getElementById('chartLowLabel').textContent = chartMoney(max * 0.4);
+  document.getElementById('chartZeroLabel').textContent = chartMoney(0);
   document.getElementById('spendingBars').innerHTML = groups.map(group => `<div class="bar-group"><i class="bar" style="height:${Math.max(5, group.total / max * 100)}%"></i><i class="bar highlight" style="height:${Math.max(4, group.total / max * 60)}%"></i></div>`).join('');
   document.getElementById('chartLabels').innerHTML = groups.map(group => `<span>${group.label}</span>`).join('');
 }
