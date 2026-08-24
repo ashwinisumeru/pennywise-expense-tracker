@@ -1,15 +1,20 @@
 const STORAGE_KEY = 'pennywise-expenses-v1';
 const BUDGET_KEY = 'pennywise-budget-v1';
 const PROFILE_KEY = 'pennywise-profile-name-v1';
+const CURRENCY_KEY = 'pennywise-currency-v1';
 const palette = ['#3c9b70', '#6086aa', '#d78a54', '#e6b75b', '#ca6f68', '#9a8ab2'];
 const storedExpenses = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 const legacyDemoIds = new Set(['1', '2', '3', '4', '5', '6', '7', '8']);
 let expenses = Array.isArray(storedExpenses) ? storedExpenses.filter(item => !legacyDemoIds.has(String(item.id))) : [];
 let monthlyBudget = Number(localStorage.getItem(BUDGET_KEY)) || 0;
 let profileName = localStorage.getItem(PROFILE_KEY) || '';
+const localeCurrency = { IN: 'INR', US: 'USD', GB: 'GBP', DE: 'EUR', FR: 'EUR', AE: 'AED', AU: 'AUD', CA: 'CAD', SG: 'SGD' };
+const detectedCurrency = localeCurrency[(navigator.language.split('-')[1] || '').toUpperCase()] || 'INR';
+let currency = localStorage.getItem(CURRENCY_KEY) || detectedCurrency;
 let currentRoute = 'dashboard';
 
-const inr = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
+const inr = value => new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
+const currencySymbol = () => new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).formatToParts(0).find(part => part.type === 'currency')?.value || currency;
 const shortDate = date => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(new Date(`${date}T00:00:00`));
 const today = new Date();
 const todayString = today.toISOString().slice(0, 10);
@@ -17,6 +22,7 @@ const monthKey = todayString.slice(0, 7);
 const monthName = new Intl.DateTimeFormat('en-IN', { month: 'short', year: 'numeric' }).format(today);
 const colorFor = value => palette[[...String(value)].reduce((sum, character) => sum + character.charCodeAt(0), 0) % palette.length];
 const categoryInfo = category => ({ color: colorFor(category), icon: String(category || '?').trim().charAt(0).toUpperCase() || '?' });
+const greetingForHour = hour => hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
 if (expenses.length !== storedExpenses.length) save();
 const monthExpenses = () => expenses.filter(item => item.date.startsWith(monthKey));
@@ -33,15 +39,18 @@ function navigate(route) {
   if (route === 'transactions') renderTransactions();
   if (route === 'budgets') renderBudgets();
   if (route === 'settings') document.getElementById('profileNameInput').value = profileName;
+  if (route === 'settings') document.getElementById('currencyInput').value = currency;
 }
 
 function renderProfile() {
   const displayName = profileName || 'there';
   const displayInitials = profileName ? profileName.split(/\s+/).map(word => word[0]).join('').slice(0, 2).toUpperCase() : '?';
   document.getElementById('greetingName').textContent = displayName;
+  document.getElementById('greetingTime').textContent = greetingForHour(new Date().getHours());
   document.getElementById('sidebarName').textContent = profileName || 'Add your name';
   document.getElementById('sidebarAvatar').textContent = displayInitials;
   document.getElementById('topProfileButton').textContent = displayInitials;
+  document.getElementById('amountCurrencySymbol').textContent = currencySymbol();
 }
 
 function renderStats() {
@@ -51,7 +60,7 @@ function renderStats() {
   const average = total ? Math.round(total / daysElapsed) : 0;
   const remaining = monthlyBudget - total;
   const usedPercent = monthlyBudget ? Math.min(100, Math.round(total / monthlyBudget * 100)) : 0;
-  document.getElementById('currentDateLabel').textContent = new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(today);
+  document.getElementById('currentDateLabel').textContent = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(today);
   document.getElementById('monthLabel').textContent = monthName;
   document.getElementById('monthTotal').textContent = inr(total);
   document.getElementById('monthCount').textContent = monthExpenses().length;
@@ -73,6 +82,10 @@ function renderChart() {
     return { label, total };
   });
   const max = 5000;
+  document.getElementById('chartMaxLabel').textContent = inr(max);
+  document.getElementById('chartMidLabel').textContent = inr(max * 0.7);
+  document.getElementById('chartLowLabel').textContent = inr(max * 0.4);
+  document.getElementById('chartZeroLabel').textContent = inr(0);
   document.getElementById('spendingBars').innerHTML = groups.map(group => `<div class="bar-group"><i class="bar" style="height:${Math.max(5, group.total / max * 100)}%"></i><i class="bar highlight" style="height:${Math.max(4, group.total / max * 60)}%"></i></div>`).join('');
   document.getElementById('chartLabels').innerHTML = groups.map(group => `<span>${group.label}</span>`).join('');
 }
@@ -106,12 +119,13 @@ function renderTransactions() {
   const filtered = [...expenses].filter(item => (category === 'all' || item.category === category) && (method === 'all' || item.method === method) && `${item.merchant} ${item.note}`.toLowerCase().includes(search)).sort((a, b) => b.date.localeCompare(a.date));
   document.getElementById('transactionTable').innerHTML = filtered.length ? filtered.map(item => `<tr><td><strong>${escapeHtml(item.merchant || item.category)}</strong><br><small class="muted">${escapeHtml(item.note || 'Everyday expense')}</small></td><td><span class="category-label">${item.category}</span></td><td>${item.method}</td><td>${shortDate(item.date)}</td><td class="amount-cell"><strong>${inr(item.amount)}</strong></td><td><button class="table-action" type="button" data-delete="${item.id}" aria-label="Delete expense">×</button></td></tr>`).join('') : '<tr><td colspan="6" class="empty-state">No transactions match these filters.</td></tr>';
   document.getElementById('resultCount').textContent = `${filtered.length} transaction${filtered.length === 1 ? '' : 's'}`;
+  document.getElementById('currencyFooter').textContent = `All amounts in ${currency}`;
 }
 
 function renderBudgets() {
   const total = monthTotal();
   const used = monthlyBudget ? Math.min(100, Math.round(total / monthlyBudget * 100)) : 0;
-  document.getElementById('budgetMonthLabel').textContent = `${monthName} budget`;
+  document.getElementById('budgetMonthLabel').textContent = `${monthName} budget (${currency})`;
   document.getElementById('budgetOverviewTitle').textContent = monthlyBudget ? `${inr(monthlyBudget)} planned` : 'No budget set';
   document.getElementById('budgetOverviewCopy').textContent = monthlyBudget ? `${inr(total)} spent so far this month across ${monthExpenses().length} entries.` : 'Set a monthly limit to start tracking your pace.';
   document.getElementById('budgetRing').style.background = `conic-gradient(var(--green) 0 ${used}%, #d8e9dc ${used}% 100%)`;
@@ -150,8 +164,8 @@ function submitExpense(event) {
   const formError = document.getElementById('formError');
   amountError.textContent = '';
   formError.textContent = '';
-  if (!Number.isFinite(amount) || amount <= 0) { amountError.textContent = 'Enter an amount greater than ₹0.'; return; }
-  if (amount > 10000000) { amountError.textContent = 'Amount must be below ₹1,00,00,000.'; return; }
+  if (!Number.isFinite(amount) || amount <= 0) { amountError.textContent = 'Enter an amount greater than 0.'; return; }
+  if (amount > 10000000) { amountError.textContent = 'Amount must be below 10,000,000.'; return; }
   if (!form.get('date') || !form.get('category') || !form.get('method')) { formError.textContent = 'Please complete the required fields.'; return; }
   expenses.unshift({ id: crypto.randomUUID(), amount: Math.round(amount * 100) / 100, category: form.get('category').trim(), method: form.get('method').trim(), date: form.get('date'), merchant: form.get('merchant').trim() || form.get('category').trim(), note: form.get('note').trim() });
   save(); closeExpenseModal(); renderAll(); showToast('Expense saved successfully');
@@ -168,7 +182,7 @@ document.addEventListener('click', event => {
   const deleteButton = event.target.closest('[data-delete]');
   if (deleteButton) deleteExpense(deleteButton.dataset.delete);
   if (event.target.closest('#mobileMenu')) document.querySelector('.sidebar').classList.toggle('open');
-  if (event.target.closest('#editBudgetButton')) { const next = window.prompt('Set your monthly budget in INR', monthlyBudget); if (next !== null && Number(next) > 0) { monthlyBudget = Math.round(Number(next)); localStorage.setItem(BUDGET_KEY, monthlyBudget); renderAll(); showToast('Monthly budget updated'); } }
+  if (event.target.closest('#editBudgetButton')) { const next = window.prompt(`Set your monthly budget in ${currency}`, monthlyBudget); if (next !== null && Number(next) > 0) { monthlyBudget = Math.round(Number(next)); localStorage.setItem(BUDGET_KEY, monthlyBudget); renderAll(); showToast('Monthly budget updated'); } }
 });
 document.getElementById('expenseForm').addEventListener('submit', submitExpense);
 document.getElementById('nameSetupForm').addEventListener('submit', event => {
@@ -190,6 +204,13 @@ document.getElementById('profileForm').addEventListener('submit', event => {
   localStorage.setItem(PROFILE_KEY, profileName);
   renderProfile();
   showToast('Name updated successfully');
+});
+document.getElementById('currencyForm').addEventListener('submit', event => {
+  event.preventDefault();
+  currency = document.getElementById('currencyInput').value;
+  localStorage.setItem(CURRENCY_KEY, currency);
+  renderAll();
+  showToast('Currency updated successfully');
 });
 document.getElementById('profileButton').addEventListener('click', () => navigate('settings'));
 document.getElementById('topProfileButton').addEventListener('click', () => navigate('settings'));
