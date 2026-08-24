@@ -65,7 +65,8 @@ function renderStats() {
   const daysElapsed = today.getDate();
   const average = total ? Math.round(total / daysElapsed) : 0;
   const remaining = monthlyBudget - total;
-  const usedPercent = monthlyBudget ? Math.min(100, Math.round(total / monthlyBudget * 100)) : 0;
+  const usedPercent = monthlyBudget ? Math.round(total / monthlyBudget * 100) : 0;
+  const overBudget = monthlyBudget > 0 && total > monthlyBudget;
   document.getElementById('currentDateLabel').textContent = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(today);
   document.getElementById('monthLabel').textContent = monthName;
   document.getElementById('monthTotal').textContent = inr(total);
@@ -74,9 +75,11 @@ function renderStats() {
   document.getElementById('todayCount').textContent = expenses.filter(item => item.date === todayString).length;
   document.getElementById('dailyAverage').textContent = inr(average);
   document.getElementById('budgetRemaining').textContent = inr(Math.max(0, remaining));
-  document.getElementById('budgetBar').style.width = `${usedPercent}%`;
-  document.getElementById('budgetBar').style.background = remaining < 0 ? 'var(--red)' : 'var(--orange)';
-  document.getElementById('budgetStatus').textContent = !monthlyBudget ? 'Set a monthly budget' : remaining < 0 ? `${inr(Math.abs(remaining))} over budget` : `${inr(total)} of ${inr(monthlyBudget)} used`;
+  document.getElementById('budgetRemaining').style.color = overBudget ? 'var(--red)' : '';
+  document.getElementById('budgetBar').style.width = `${Math.min(100, usedPercent)}%`;
+  document.getElementById('budgetBar').style.background = overBudget ? 'var(--red)' : 'var(--orange)';
+  document.getElementById('budgetStatus').style.color = overBudget ? 'var(--red)' : '';
+  document.getElementById('budgetStatus').textContent = !monthlyBudget ? 'Set a monthly budget' : overBudget ? `${inr(total - monthlyBudget)} over budget` : `${inr(total)} of ${inr(monthlyBudget)} used`;
   document.getElementById('budgetPercent').textContent = `${usedPercent}%`;
 }
 
@@ -130,14 +133,16 @@ function renderTransactions() {
 
 function renderBudgets() {
   const total = monthTotal();
-  const used = monthlyBudget ? Math.min(100, Math.round(total / monthlyBudget * 100)) : 0;
+  const used = monthlyBudget ? Math.round(total / monthlyBudget * 100) : 0;
+  const overBudget = monthlyBudget > 0 && total > monthlyBudget;
   document.getElementById('budgetMonthLabel').textContent = `${monthName} budget (${currency})`;
   document.getElementById('budgetOverviewTitle').textContent = monthlyBudget ? `${inr(monthlyBudget)} planned` : 'No budget set';
-  document.getElementById('budgetOverviewCopy').textContent = monthlyBudget ? `${inr(total)} spent so far this month across ${monthExpenses().length} entries.` : 'Set a monthly limit to start tracking your pace.';
-  document.getElementById('budgetRing').style.background = `conic-gradient(var(--green) 0 ${used}%, #d8e9dc ${used}% 100%)`;
+  document.getElementById('budgetOverviewCopy').textContent = monthlyBudget ? overBudget ? `${inr(total - monthlyBudget)} over your monthly limit.` : `${inr(total)} spent so far this month across ${monthExpenses().length} entries.` : 'Set a monthly limit to start tracking your pace.';
+  document.getElementById('budgetRing').style.background = `conic-gradient(${overBudget ? 'var(--red)' : 'var(--green)'} 0 ${Math.min(100, used)}%, #d8e9dc ${Math.min(100, used)}% 100%)`;
+  document.getElementById('budgetRingPercent').style.color = overBudget ? 'var(--red)' : '';
   document.getElementById('budgetRingPercent').textContent = `${used}%`;
   const totals = Object.entries(monthExpenses().reduce((all, item) => { all[item.category] = (all[item.category] || 0) + Number(item.amount); return all; }, {}));
-  document.getElementById('budgetCards').innerHTML = totals.length ? totals.slice(0, 6).map(([category, spent]) => { const limit = monthlyBudget ? Math.round(monthlyBudget / totals.length) : 0; const percent = limit ? Math.min(100, Math.round(spent / limit * 100)) : 0; const info = categoryInfo(category); return `<article class="budget-card"><div class="budget-card-head"><span class="budget-card-title">${escapeHtml(category)}</span><span class="budget-card-icon" style="color:${info.color};background:${info.color}18">${info.icon}</span></div><div class="budget-card-amount">${inr(spent)} <small>${limit ? `of ${inr(limit)}` : 'spent'}</small></div><div class="mini-progress"><span style="width:${percent}%;background:${percent > 100 ? 'var(--red)' : info.color}"></span></div><div class="budget-card-foot"><span>${limit ? `${percent}% used` : 'No category limit'}</span><span>${limit ? `${inr(Math.max(0, limit - spent))} left` : ''}</span></div></article>`; }).join('') : '<div class="empty-state">No expenses yet. Add an expense to see category budgets.</div>';
+  document.getElementById('budgetCards').innerHTML = totals.length ? totals.slice(0, 6).map(([category, spent]) => { const limit = monthlyBudget ? Math.round(monthlyBudget / totals.length) : 0; const actualPercent = limit ? Math.round(spent / limit * 100) : 0; const percent = Math.min(100, actualPercent); const overCategory = limit > 0 && spent > limit; const info = categoryInfo(category); return `<article class="budget-card"><div class="budget-card-head"><span class="budget-card-title">${escapeHtml(category)}</span><span class="budget-card-icon" style="color:${info.color};background:${info.color}18">${info.icon}</span></div><div class="budget-card-amount" style="color:${overCategory ? 'var(--red)' : ''}">${inr(spent)} <small>${limit ? `of ${inr(limit)}` : 'spent'}</small></div><div class="mini-progress"><span style="width:${percent}%;background:${overCategory ? 'var(--red)' : info.color}"></span></div><div class="budget-card-foot" style="color:${overCategory ? 'var(--red)' : ''}"><span>${limit ? `${actualPercent}% used` : 'No category limit'}</span><span>${limit ? (overCategory ? `${inr(spent - limit)} over` : `${inr(limit - spent)} left`) : ''}</span></div></article>`; }).join('') : '<div class="empty-state">No expenses yet. Add an expense to see category budgets.</div>';
 }
 
 function populateCategories() {
