@@ -1,10 +1,12 @@
 const STORAGE_KEY = 'pennywise-expenses-v1';
 const BUDGET_KEY = 'pennywise-budget-v1';
+const PROFILE_KEY = 'pennywise-profile-name-v1';
 const palette = ['#3c9b70', '#6086aa', '#d78a54', '#e6b75b', '#ca6f68', '#9a8ab2'];
 const storedExpenses = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 const legacyDemoIds = new Set(['1', '2', '3', '4', '5', '6', '7', '8']);
 let expenses = Array.isArray(storedExpenses) ? storedExpenses.filter(item => !legacyDemoIds.has(String(item.id))) : [];
 let monthlyBudget = Number(localStorage.getItem(BUDGET_KEY)) || 0;
+let profileName = localStorage.getItem(PROFILE_KEY) || '';
 let currentRoute = 'dashboard';
 
 const inr = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
@@ -24,12 +26,22 @@ function navigate(route) {
   currentRoute = route;
   document.querySelectorAll('.page').forEach(page => page.classList.toggle('active-page', page.dataset.page === route));
   document.querySelectorAll('[data-route]').forEach(link => link.classList.toggle('active', link.dataset.route === route));
-  const titles = { dashboard: 'Overview', transactions: 'Transactions', budgets: 'Budgets' };
+  const titles = { dashboard: 'Overview', transactions: 'Transactions', budgets: 'Budgets', settings: 'Settings' };
   document.getElementById('pageTitle').textContent = titles[route];
   document.querySelector('.sidebar').classList.remove('open');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (route === 'transactions') renderTransactions();
   if (route === 'budgets') renderBudgets();
+  if (route === 'settings') document.getElementById('profileNameInput').value = profileName;
+}
+
+function renderProfile() {
+  const displayName = profileName || 'there';
+  const displayInitials = profileName ? profileName.split(/\s+/).map(word => word[0]).join('').slice(0, 2).toUpperCase() : '?';
+  document.getElementById('greetingName').textContent = displayName;
+  document.getElementById('sidebarName').textContent = profileName || 'Add your name';
+  document.getElementById('sidebarAvatar').textContent = displayInitials;
+  document.getElementById('topProfileButton').textContent = displayInitials;
 }
 
 function renderStats() {
@@ -120,6 +132,12 @@ function openExpenseModal() {
   document.getElementById('date').value = todayString;
   document.getElementById('amount').focus();
 }
+function openNameSetup() {
+  if (!profileName) {
+    document.getElementById('nameSetupModal').hidden = false;
+    document.getElementById('nameSetupInput').focus();
+  }
+}
 function closeExpenseModal() { document.getElementById('expenseModal').hidden = true; document.getElementById('expenseForm').reset(); document.getElementById('formError').textContent = ''; document.getElementById('amountError').textContent = ''; }
 function showToast(message) { const toast = document.getElementById('toast'); document.getElementById('toastMessage').textContent = message; toast.classList.add('show'); window.clearTimeout(showToast.timeout); showToast.timeout = window.setTimeout(() => toast.classList.remove('show'), 2800); }
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;' }[character])); }
@@ -140,7 +158,7 @@ function submitExpense(event) {
 }
 
 function deleteExpense(id) { const item = expenses.find(expense => expense.id === id); if (!item || !window.confirm(`Delete ${item.merchant || 'this expense'}?`)) return; expenses = expenses.filter(expense => expense.id !== id); save(); renderAll(); if (currentRoute === 'transactions') renderTransactions(); showToast('Expense deleted'); }
-function renderAll() { populateCategories(); renderStats(); renderChart(); renderCategories(); renderRecent(); renderTransactions(); renderBudgets(); }
+function renderAll() { populateCategories(); renderProfile(); renderStats(); renderChart(); renderCategories(); renderRecent(); renderTransactions(); renderBudgets(); }
 
 document.addEventListener('click', event => {
   const routeLink = event.target.closest('[data-route]');
@@ -153,6 +171,28 @@ document.addEventListener('click', event => {
   if (event.target.closest('#editBudgetButton')) { const next = window.prompt('Set your monthly budget in INR', monthlyBudget); if (next !== null && Number(next) > 0) { monthlyBudget = Math.round(Number(next)); localStorage.setItem(BUDGET_KEY, monthlyBudget); renderAll(); showToast('Monthly budget updated'); } }
 });
 document.getElementById('expenseForm').addEventListener('submit', submitExpense);
+document.getElementById('nameSetupForm').addEventListener('submit', event => {
+  event.preventDefault();
+  const input = document.getElementById('nameSetupInput');
+  const nextName = input.value.trim();
+  if (!nextName) { document.getElementById('nameSetupError').textContent = 'Please enter your name to continue.'; input.focus(); return; }
+  profileName = nextName;
+  localStorage.setItem(PROFILE_KEY, profileName);
+  document.getElementById('nameSetupModal').hidden = true;
+  renderProfile();
+  showToast(`Welcome, ${profileName}`);
+});
+document.getElementById('profileForm').addEventListener('submit', event => {
+  event.preventDefault();
+  const nextName = document.getElementById('profileNameInput').value.trim();
+  if (!nextName) { showToast('Please enter your name'); return; }
+  profileName = nextName;
+  localStorage.setItem(PROFILE_KEY, profileName);
+  renderProfile();
+  showToast('Name updated successfully');
+});
+document.getElementById('profileButton').addEventListener('click', () => navigate('settings'));
+document.getElementById('topProfileButton').addEventListener('click', () => navigate('settings'));
 document.getElementById('searchInput').addEventListener('input', renderTransactions);
 document.getElementById('categoryFilter').addEventListener('change', renderTransactions);
 document.getElementById('methodFilter').addEventListener('change', renderTransactions);
@@ -160,3 +200,4 @@ window.addEventListener('hashchange', () => navigate(location.hash.slice(1) || '
 populateCategories();
 renderAll();
 navigate(location.hash.slice(1) || 'dashboard');
+openNameSetup();
