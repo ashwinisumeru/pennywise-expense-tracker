@@ -32,7 +32,7 @@ function navigate(route) {
   currentRoute = route;
   document.querySelectorAll('.page').forEach(page => page.classList.toggle('active-page', page.dataset.page === route));
   document.querySelectorAll('[data-route]').forEach(link => link.classList.toggle('active', link.dataset.route === route));
-  const titles = { dashboard: 'Overview', transactions: 'Transactions', budgets: 'Budgets', settings: 'Settings' };
+  const titles = { dashboard: 'Overview', 'add-expense': 'Add expense', transactions: 'Transactions', budgets: 'Budgets', settings: 'Settings' };
   document.getElementById('pageTitle').textContent = titles[route];
   document.querySelector('.sidebar').classList.remove('open');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -40,6 +40,11 @@ function navigate(route) {
   if (route === 'budgets') renderBudgets();
   if (route === 'settings') document.getElementById('profileNameInput').value = profileName;
   if (route === 'settings') document.getElementById('currencyInput').value = currency;
+  if (route === 'add-expense') {
+    document.getElementById('pageDate').value = todayString;
+    document.getElementById('pageAmountCurrencySymbol').textContent = currencySymbol();
+    document.getElementById('pageAmount').focus();
+  }
 }
 
 function renderProfile() {
@@ -51,6 +56,7 @@ function renderProfile() {
   document.getElementById('sidebarAvatar').textContent = displayInitials;
   document.getElementById('topProfileButton').textContent = displayInitials;
   document.getElementById('amountCurrencySymbol').textContent = currencySymbol();
+  document.getElementById('pageAmountCurrencySymbol').textContent = currencySymbol();
 }
 
 function renderStats() {
@@ -160,8 +166,9 @@ function submitExpense(event) {
   event.preventDefault();
   const form = new FormData(event.target);
   const amount = Number(form.get('amount'));
-  const amountError = document.getElementById('amountError');
-  const formError = document.getElementById('formError');
+  const prefix = event.target.id === 'pageExpenseForm' ? 'page' : '';
+  const amountError = document.getElementById(prefix ? 'pageAmountError' : 'amountError');
+  const formError = document.getElementById(prefix ? 'pageFormError' : 'formError');
   amountError.textContent = '';
   formError.textContent = '';
   if (!Number.isFinite(amount) || amount <= 0) { amountError.textContent = 'Enter an amount greater than 0.'; return; }
@@ -185,6 +192,10 @@ document.addEventListener('click', event => {
   if (event.target.closest('#editBudgetButton')) { const next = window.prompt(`Set your monthly budget in ${currency}`, monthlyBudget); if (next !== null && Number(next) > 0) { monthlyBudget = Math.round(Number(next)); localStorage.setItem(BUDGET_KEY, monthlyBudget); renderAll(); showToast('Monthly budget updated'); } }
 });
 document.getElementById('expenseForm').addEventListener('submit', submitExpense);
+document.getElementById('pageExpenseForm').addEventListener('submit', event => {
+  submitExpense(event);
+  if (!event.defaultPrevented) return;
+});
 document.getElementById('nameSetupForm').addEventListener('submit', event => {
   event.preventDefault();
   const input = document.getElementById('nameSetupInput');
