@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Pennywise everyday expense tracker">
+  <title>Pennywise | Everyday expense tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#dashboard" data-route="dashboard" aria-label="Pennywise dashboard">
+        <span class="brand-mark">P</span>
+        <span>Pennywise</span>
+      </a>
+      <div class="sidebar-label">Workspace</div>
+      <nav class="nav-list">
+        <a href="#dashboard" data-route="dashboard" class="nav-link active"><span class="nav-icon">⌂</span>Overview</a>
+        <a href="#transactions" data-route="transactions" class="nav-link"><span class="nav-icon">≡</span>Transactions</a>
+        <a href="#budgets" data-route="budgets" class="nav-link"><span class="nav-icon">◒</span>Budgets</a>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-note">
+        <span class="note-dot"></span>
+        <div><strong>Private by default</strong><small>Your entries stay in this browser.</small></div>
+      </div>
+      <button class="profile-chip" type="button" id="profileButton"><span class="avatar">AS</span><span><strong>Arjun Sharma</strong><small>Personal account</small></span><span class="chevron">⌄</span></button>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" type="button" aria-label="Open navigation">☰</button>
+        <div class="breadcrumb"><span>Workspace</span><span class="slash">/</span><strong id="pageTitle">Overview</strong></div>
+        <div class="topbar-actions">
+          <button class="icon-button" id="notificationButton" type="button" aria-label="Notifications">♧<span class="notification-dot"></span></button>
+          <button class="avatar top-avatar" type="button" id="topProfileButton" aria-label="Open profile">AS</button>
+        </div>
+      </header>
+
+      <div class="page-container">
+        <section id="dashboardPage" class="page active-page" data-page="dashboard">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">Monday, 24 August 2026</p>
+              <h1>Good morning, Arjun<span class="heading-period">.</span></h1>
+              <p class="heading-copy">A clear view of your spending, one small entry at a time.</p>
+            </div>
+            <button class="primary-button" type="button" data-open-expense><span>＋</span> Add expense</button>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card stat-primary">
+              <div class="stat-top"><span>This month</span><span class="period-pill">Aug 2026</span></div>
+              <div class="stat-value" id="monthTotal">₹0</div>
+              <div class="stat-foot"><span class="trend-up">↗ <b id="monthCount">0</b> entries</span><span>vs last month</span></div>
+              <div class="stat-sparkline" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-top"><span>Today's spend</span><span class="stat-icon green">◷</span></div>
+              <div class="stat-value" id="todayTotal">₹0</div>
+              <div class="stat-foot"><span class="muted">Across <b id="todayCount">0</b> entries</span></div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-top"><span>Daily average</span><span class="stat-icon blue">⌁</span></div>
+              <div class="stat-value" id="dailyAverage">₹0</div>
+              <div class="stat-foot"><span class="muted">Based on this month</span></div>
+            </article>
+            <article class="stat-card budget-stat">
+              <div class="stat-top"><span>Budget remaining</span><span class="stat-icon orange">◉</span></div>
+              <div class="stat-value" id="budgetRemaining">₹0</div>
+              <div class="budget-progress"><span id="budgetBar"></span></div>
+              <div class="stat-foot"><span id="budgetStatus">Set a monthly budget</span><span id="budgetPercent">0%</span></div>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="panel chart-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Spending activity</p><h2>Where your money goes</h2></div><select id="chartRange" class="compact-select" aria-label="Chart time range"><option value="month">This month</option><option value="week">This week</option></select></div>
+              <div class="chart-wrap"><div class="chart-y-axis"><span>₹5k</span><span>₹3.5k</span><span>₹2k</span><span>₹0</span></div><div class="chart-area"><div class="grid-lines"><span></span><span></span><span></span><span></span></div><div class="bars" id="spendingBars"></div><div class="chart-labels" id="chartLabels"></div></div></div>
+            </section>
+            <section class="panel categories-panel">
+              <div class="panel-heading"><div><p class="eyebrow">By category</p><h2>Spending mix</h2></div><button class="text-button" data-route="transactions">View all <span>→</span></button></div>
+              <div class="category-donut-wrap"><div class="donut" id="categoryDonut"><div><strong id="donutTotal">₹0</strong><small>Total</small></div></div><div class="category-legend" id="categoryLegend"></div></div>
+            </section>
+          </div>
+
+          <section class="panel recent-panel">
+            <div class="panel-heading"><div><p class="eyebrow">Latest activity</p><h2>Recent transactions</h2></div><button class="text-button" data-route="transactions">See all transactions <span>→</span></button></div>
+            <div class="transaction-list" id="recentTransactions"></div>
+          </section>
+        </section>
+
+        <section id="transactionsPage" class="page" data-page="transactions">
+          <div class="page-heading compact-heading"><div><p class="eyebrow">Your spending history</p><h1>Transactions<span class="heading-period">.</span></h1><p class="heading-copy">Every entry, organized and easy to find.</p></div><button class="primary-button" type="button" data-open-expense><span>＋</span> Add expense</button></div>
+          <section class="panel transactions-panel"><div class="filter-row"><label class="search-box"><span>⌕</span><input type="search" id="searchInput" placeholder="Search merchant or note" aria-label="Search transactions"></label><select id="categoryFilter" class="filter-select" aria-label="Filter by category"><option value="all">All categories</option></select><select id="methodFilter" class="filter-select" aria-label="Filter by payment method"><option value="all">All methods</option><option>UPI</option><option>Card</option><option>Cash</option><option>Bank transfer</option></select></div><div class="table-wrap"><table><thead><tr><th>Transaction</th><th>Category</th><th>Payment method</th><th>Date</th><th class="amount-cell">Amount</th><th></th></tr></thead><tbody id="transactionTable"></tbody></table></div><div class="table-footer"><span id="resultCount">0 transactions</span><span>All amounts in INR</span></div></section>
+        </section>
+
+        <section id="budgetsPage" class="page" data-page="budgets">
+          <div class="page-heading compact-heading"><div><p class="eyebrow">Stay on track</p><h1>Budgets<span class="heading-period">.</span></h1><p class="heading-copy">Give every rupee a clear purpose.</p></div><button class="primary-button" type="button" id="editBudgetButton"><span>＋</span> Set monthly budget</button></div>
+          <div class="budget-overview panel"><div><p class="eyebrow">August 2026 budget</p><h2 id="budgetOverviewTitle">₹0 planned</h2><p class="muted" id="budgetOverviewCopy">Set a monthly limit to start tracking your pace.</p></div><div class="budget-ring" id="budgetRing"><span id="budgetRingPercent">0%</span><small>used</small></div></div>
+          <div class="budget-cards" id="budgetCards"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="expenseModal" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="modal-close" type="button" data-close-modal aria-label="Close">×</button><p class="eyebrow">Quick entry</p><h2 id="modalTitle">Add an expense</h2><p class="modal-copy">Capture the detail now. Future you will be glad you did.</p><form id="expenseForm" novalidate><div class="amount-field"><label for="amount">Amount</label><div class="amount-input"><span>₹</span><input id="amount" name="amount" type="number" min="1" max="10000000" step="0.01" placeholder="0.00" required autofocus></div><span class="field-error" id="amountError"></span></div><div class="form-grid"><label>Category<select id="category" name="category" required></select></label><label>Date<input id="date" name="date" type="date" required></label><label>Payment method<select id="method" name="method" required><option>UPI</option><option>Card</option><option>Cash</option><option>Bank transfer</option></select></label><label>Merchant <span class="optional">Optional</span><input id="merchant" name="merchant" type="text" maxlength="60" placeholder="e.g. Zepto"></label></div><label>Note <span class="optional">Optional</span><input id="note" name="note" type="text" maxlength="120" placeholder="What was this for?"></label><div class="form-error" id="formError" role="alert"></div><button class="primary-button submit-button" type="submit">Save expense <span>→</span></button></form></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-icon">✓</span><span id="toastMessage">Expense saved</span></div>
+  <script src="app.js"></script>
+</body>
+</html>
